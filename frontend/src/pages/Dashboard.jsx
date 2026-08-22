@@ -66,6 +66,13 @@ export default function Dashboard() {
           backgroundPosition: 'center',
         }}
       >
+        <Link
+          to={`/trips/${recentTrips[0]?.id || 1}/calendar`}
+          className="absolute top-4 right-4 z-20 bg-surface-pure/80 hover:bg-surface-pure text-primary p-2.5 rounded-full flex items-center justify-center transition-all shadow-sm border border-surface-muted hover:scale-105 active:scale-95 cursor-pointer"
+          title="Trip Calendar"
+        >
+          <span className="material-symbols-outlined text-[22px]">calendar_month</span>
+        </Link>
         <div className="absolute inset-0 bg-surface-pure/60 backdrop-blur-[2px]" />
         <div className="relative z-10 w-full max-w-4xl flex flex-col items-center gap-4">
           <h2 className="text-4xl md:text-5xl font-bold text-primary drop-shadow-sm tracking-tight">Where to next?</h2>
