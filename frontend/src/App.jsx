@@ -13,6 +13,7 @@ import ActivitySearch from './pages/ActivitySearch';
 import CommunitySearch from './pages/CommunitySearch';
 import SharedItinerary from './pages/SharedItinerary';
 import CitySearch from './pages/CitySearch';
+import AddStop from './pages/AddStop';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
           <Route path="/trips" element={<MyTrips />} />
           <Route path="/trips/create" element={<CreateTrip />} />
           <Route path="/trips/:id/itinerary" element={<ItineraryBuilder />} />
+          <Route path="/trips/:id/itinerary/add-stop" element={<AddStop />} />
           <Route path="/trips/:id/calendar" element={<TripCalendar />} />
           <Route path="/trips/:id/budget" element={<TripBudget />} />
           <Route path="/activities" element={<ActivitySearch />} />

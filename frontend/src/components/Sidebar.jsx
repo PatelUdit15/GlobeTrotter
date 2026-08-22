@@ -6,7 +6,7 @@ const navItems = [
   { path: '/cities', icon: 'location_city', label: 'Explore Cities' },
   { path: '/activities', icon: 'local_activity', label: 'Find Activities' },
   { path: '/community', icon: 'groups', label: 'Community' },
-  { path: '/settings', icon: 'settings', label: 'Settings' },
+  { path: '/settings', icon: 'person', label: 'Profile' },
 ];
 
 const bottomItems = [

@@ -5,7 +5,7 @@ const navItems = [
   { path: '/trips', icon: 'explore', label: 'Trips' },
   { path: '/cities', icon: 'location_city', label: 'Cities' },
   { path: '/community', icon: 'groups', label: 'Community' },
-  { path: '/settings', icon: 'settings', label: 'Settings' },
+  { path: '/settings', icon: 'person', label: 'Profile' },
 ];
 
 export default function BottomNav() {

@@ -26,7 +26,12 @@ const suggestions = [
   },
 ];
 
+import { useParams, useNavigate } from 'react-router-dom';
+
 export default function ItineraryBuilder() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
   return (
     <div>
       {/* Page Header & Actions */}
@@ -163,7 +168,10 @@ export default function ItineraryBuilder() {
             <div className="absolute left-[16px] top-3 w-4 h-4 bg-surface-pure rounded-full border-2 border-secondary flex items-center justify-center">
               <div className="w-1.5 h-1.5 bg-secondary rounded-full" />
             </div>
-            <button className="w-full border-2 border-dashed border-outline-variant rounded-xl p-6 text-center hover:bg-surface-muted transition-colors flex flex-col items-center justify-center gap-2 group cursor-pointer">
+            <button 
+              onClick={() => navigate(`/trips/${id}/itinerary/add-stop`)}
+              className="w-full border-2 border-dashed border-outline-variant rounded-xl p-6 text-center hover:bg-surface-muted transition-colors flex flex-col items-center justify-center gap-2 group cursor-pointer"
+            >
               <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors text-3xl">add_location_alt</span>
               <span className="text-base font-semibold text-outline group-hover:text-primary transition-colors">Add Next Stop</span>
             </button>
