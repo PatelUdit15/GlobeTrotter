@@ -3,7 +3,9 @@ import { NavLink } from 'react-router-dom';
 const navItems = [
   { path: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
   { path: '/trips', icon: 'explore', label: 'My Trips' },
-  { path: '/trips/create', icon: 'add_circle', label: 'Create Trip' },
+  { path: '/cities', icon: 'location_city', label: 'Explore Cities' },
+  { path: '/activities', icon: 'local_activity', label: 'Find Activities' },
+  { path: '/community', icon: 'groups', label: 'Community' },
   { path: '/settings', icon: 'settings', label: 'Settings' },
 ];
 

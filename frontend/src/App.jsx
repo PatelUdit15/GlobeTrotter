@@ -9,6 +9,10 @@ import TripCalendar from './pages/TripCalendar';
 import TripBudget from './pages/TripBudget';
 import Settings from './pages/Settings';
 import AdminPanel from './pages/AdminPanel';
+import ActivitySearch from './pages/ActivitySearch';
+import CommunitySearch from './pages/CommunitySearch';
+import SharedItinerary from './pages/SharedItinerary';
+import CitySearch from './pages/CitySearch';
 
 function App() {
   return (
@@ -25,6 +29,11 @@ function App() {
           <Route path="/trips/:id/itinerary" element={<ItineraryBuilder />} />
           <Route path="/trips/:id/calendar" element={<TripCalendar />} />
           <Route path="/trips/:id/budget" element={<TripBudget />} />
+          <Route path="/activities" element={<ActivitySearch />} />
+          <Route path="/community" element={<CommunitySearch />} />
+          <Route path="/shared-itinerary/:id" element={<SharedItinerary />} />
+          <Route path="/shared-itinerary" element={<SharedItinerary />} />
+          <Route path="/cities" element={<CitySearch />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/admin" element={<AdminPanel />} />
         </Route>

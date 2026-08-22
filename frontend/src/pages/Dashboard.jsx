@@ -222,58 +222,6 @@ export default function Dashboard() {
             </div>
           </section>
         </div>
-
-        {/* Right Column: Widgets */}
-        <div className="flex flex-col gap-6">
-          {/* Quick Actions Bento */}
-          <div className="grid grid-cols-2 gap-4">
-            {quickActions.map((action) => (
-              <button
-                key={action.label}
-                className="bg-surface-pure border border-surface-muted rounded-xl p-4 flex flex-col items-center justify-center gap-2 hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all group cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-3xl text-secondary group-hover:scale-110 transition-transform">
-                  {action.icon}
-                </span>
-                <span className="text-xs font-semibold tracking-wider text-primary">{action.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Budget Summary */}
-          <div className="bg-surface-pure border border-surface-muted rounded-xl p-6 flex flex-col gap-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-xl font-semibold text-on-surface">Upcoming Expenses</h3>
-              <span className="material-symbols-outlined text-on-surface-variant">account_balance_wallet</span>
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-semibold tracking-wider text-on-surface-variant">Total Est. (Paris Getaway)</span>
-              <span className="text-[32px] leading-[40px] font-bold text-primary">$3,240.00</span>
-            </div>
-            <div className="flex flex-col gap-3 mt-2">
-              {/* Flights Progress */}
-              <div>
-                <div className="flex justify-between text-[10px] font-semibold tracking-wider text-on-surface-variant mb-1">
-                  <span>Flights</span>
-                  <span>$1,200</span>
-                </div>
-                <div className="w-full bg-surface-muted h-2 rounded-full overflow-hidden">
-                  <div className="bg-secondary h-full rounded-full" style={{ width: '35%' }} />
-                </div>
-              </div>
-              {/* Accommodation Progress */}
-              <div>
-                <div className="flex justify-between text-[10px] font-semibold tracking-wider text-on-surface-variant mb-1">
-                  <span>Accommodation</span>
-                  <span>$1,500</span>
-                </div>
-                <div className="w-full bg-surface-muted h-2 rounded-full overflow-hidden">
-                  <div className="bg-primary-container h-full rounded-full" style={{ width: '45%' }} />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Floating "Plan a Trip" Button */}
