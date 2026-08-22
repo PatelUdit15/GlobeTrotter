@@ -1,237 +1,651 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { citiesApi, tripsApi, stopsApi, activitiesApi } from '../api';
 
-const citiesData = [
-  {
-    id: 1,
-    name: 'New York City',
-    country: 'United States',
-    popularity: 'Highly Popular',
-    description: 'Tech and cultural hub known for its iconic skyscrapers, broadway shows, and central park.',
-    cost: 3, // out of 4 dollars
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBQqlmTq7Bz6vsdtdCs34kuiF5YfgOuwXAlNEuh5SYCQ0KivuxagMgzzimjwDT-c5f8ghThsImmB6Bzvq-MjHsDwKccXgOuttkYTV-MGjiIgy2GjSGIFlPf2meAYqA9dwFiCS8WZD8T-HqTYdQSX_288CqLu5f909hDfh_TCgC8nrLwAQPfyoYGHEajc9S_mxCi0OizY3IkvBSp52P7WXmVSPmQ5gmQlmNCHDrkqp_sj7bTqMxKxeM',
-    region: 'North America',
-    featured: true,
-  },
-  {
-    id: 2,
-    name: 'San Francisco',
-    country: 'United States',
-    popularity: 'Popular',
-    description: 'Tech hub known for its iconic golden gate bridge, steep hills, and rolling fog.',
-    cost: 3,
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuApoxKJoTXnnXxGwPkYMsSBf7tT4T6hKGu5MkO-TFCS-WqQO51srAU146OjaSfNDOL4DhXLcqvf6hSxpRQVdpC93GQpKr41p6aM0drd-BPFfCJvbMmF6DOIz75_R0Bg4Z-axAKQfbDy0Xr6Ju1PLqSiqyEsjL3Mtm1o5ypwl8DeNX7yYnZG8NNm7_U5h5Rd8saMnxaXHILk0EcXExWQ9vhL_e63zCjp5UMK2M82EyHEUPw95rC1w4c',
-    region: 'North America',
-  },
-  {
-    id: 3,
-    name: 'Kyoto',
-    country: 'Japan',
-    popularity: 'Recommended',
-    description: 'Historic city famous for classical Buddhist temples, gardens, and imperial palaces.',
-    cost: 2,
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuANh5FPrRNHeRdT7yNojPAWY9FV6b6jsU8RShN_pEDF6hK47Kx19dgXG7kkW9P4qA8Zsafisgud1j5pu65sGGQ2draYlkKBheEHol6j_AyHEdv-UFzF3jdvtVXNLcF5ilYVM9UvTp8t-nzKb1vWGGU878W0qcZk1_es2-YHeKiqMWuBHzUWJUYzD8Lo1McIAg9job_OLbqDs3rDFfpiRNBDrWkzxF4m1VrDfMtt6x2K_c7E3u2vT5c',
-    region: 'Asia',
-  },
-  {
-    id: 4,
-    name: 'Rome',
-    country: 'Italy',
-    popularity: 'Highly Popular',
-    description: 'Sprawling, cosmopolitan city with nearly 3,000 years of globally influential art, architecture and culture on display.',
-    cost: 3,
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBnlASTwACLzm0hxnC9jHskpyxWJ0v7D0esVk543Ym_N88vCAvCLenqL_G2REUUe9vV0PmUx5ZdKxDAOs_8lJeAMQNVPoKawMaY9gkRpYVK01Ws_zbwjRAYy5tqb-IQ1KLaTphTxo9AputYmOifqJG0wpBSV9Og1u1jwj0aelIU62Q3-YKq_yG6Xx2RKmrBgMRtaFVpstOei8YR65beGZMCi7sUk4gPnFJKhH8D5xHWPuQTw0cbQHI',
-    region: 'Europe',
-  },
-  {
-    id: 5,
-    name: 'Vancouver',
-    country: 'Canada',
-    popularity: 'Recommended',
-    description: 'A bustling west coast seaport in British Columbia, among Canada’s densest, most ethnically diverse cities.',
-    cost: 2,
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCxypExQW4WXxM3Ye0rzzYX1--JBetpnoyjKD6D4YW42b-ebayAtt92ZwgFZKDk8B9H5YhQKToymMvmFFNB4-cjiw1Z3sEFBkyEHYnbc2FZxoLVRUeGoHbX1oknTPw7x4KM4tyUTNVx5DfBj8QNbrMRV5qZlrlbX0sqvysON_BkyP3ZaLINvdF4njwLBTDbiw5vi5xDJLC0wqNPVuBzPXvMct1WcUnWIz40P9cjouNbZ9Btp9EQ33Q',
-    region: 'North America',
-  },
-];
+const REGIONS = ['All', 'Europe', 'Asia', 'North America', 'South America', 'Africa', 'Oceania'];
 
-const regions = ['All', 'Europe', 'Asia', 'North America', 'South America'];
+const CATEGORY_ICON = {
+  sightseeing:   'photo_camera',
+  dining:        'restaurant',
+  transport:     'directions_transit',
+  accommodation: 'hotel',
+  activity:      'local_activity',
+  other:         'more_horiz',
+};
 
-export default function CitySearch() {
-  const [selectedRegion, setSelectedRegion] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [addedCities, setAddedCities] = useState([]);
+function Skeleton({ className }) {
+  return <div className={`animate-pulse bg-surface-muted rounded ${className}`} />;
+}
 
-  const toggleCity = (id) => {
-    if (addedCities.includes(id)) {
-      setAddedCities(addedCities.filter(item => item !== id));
-    } else {
-      setAddedCities([...addedCities, id]);
-    }
-  };
-
-  const filteredCities = citiesData.filter(city => {
-    const matchesRegion = selectedRegion === 'All' || city.region === selectedRegion;
-    const matchesSearch = city.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          city.country.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          city.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesRegion && matchesSearch;
-  });
-
-  const renderCostSymbol = (costLevel) => {
-    const symbols = [];
-    for (let i = 0; i < 4; i++) {
-      symbols.push(
-        <span 
-          key={i} 
-          className={`material-symbols-outlined text-[16px] ${i < costLevel ? 'text-secondary' : 'text-surface-variant'}`}
-        >
+function CostDots({ level }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4].map(i => (
+        <span key={i} className={`material-symbols-outlined text-[14px] ${i <= level ? 'text-secondary' : 'text-outline-variant'}`}>
           attach_money
         </span>
-      );
+      ))}
+    </div>
+  );
+}
+
+/* ── City Detail Modal with Activity Selection ── */
+function CityDetailModal({ city, onClose }) {
+  const [activities,      setActivities]      = useState([]);
+  const [selected,        setSelected]        = useState(new Set());
+  const [loading,         setLoading]         = useState(true);
+  const [showTripPicker,  setShowTripPicker]  = useState(false);
+  const [trips,           setTrips]           = useState([]);
+  const [tripsLoading,    setTripsLoading]    = useState(false);
+  const [adding,          setAdding]          = useState(null); // tripId being processed
+  const [error,           setError]           = useState('');
+  const [successMsg,      setSuccessMsg]      = useState('');
+
+  useEffect(() => {
+    citiesApi.suggestions(city.name)
+      .then(data => setActivities(data || []))
+      .catch(() => setError('Failed to load activities.'))
+      .finally(() => setLoading(false));
+  }, [city.name]);
+
+  const toggleSelect = (idx) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else               next.add(idx);
+      return next;
+    });
+  };
+
+  const handleProceed = () => {
+    if (selected.size === 0) {
+      setError('Please select at least one activity.');
+      return;
     }
-    return symbols;
+    setError('');
+    setShowTripPicker(true);
+    setTripsLoading(true);
+    tripsApi.list({ limit: 50, sort_by: 'created_at' })
+      .then(res => setTrips(res.items || []))
+      .catch(() => setError('Could not load your trips.'))
+      .finally(() => setTripsLoading(false));
+  };
+
+  const handleAddToTrip = async (trip) => {
+    setAdding(trip.id);
+    setError('');
+    try {
+      // Find or create a stop for this city in the selected trip
+      let stop = trip.stops?.find(s => s.city_name?.toLowerCase() === city.name.toLowerCase());
+
+      if (!stop) {
+        // Create a new stop
+        stop = await stopsApi.create(trip.id, {
+          city_name:       city.name,
+          country:         city.country,
+          duration_nights: 1,
+        });
+      }
+
+      // Add selected activities to the stop
+      const selectedActivities = Array.from(selected).map(idx => activities[idx]);
+      for (const act of selectedActivities) {
+        await activitiesApi.create(trip.id, stop.id, {
+          name:        act.name,
+          category:    act.category,
+          cost:        act.estimated_cost || 0,
+          currency:    act.currency || 'USD',
+          description: act.description || '',
+        });
+      }
+
+      setSuccessMsg(`Added ${selected.size} ${selected.size === 1 ? 'activity' : 'activities'} to "${trip.title}"!`);
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+    } catch (e) {
+      setError(e.message || 'Failed to add activities.');
+    } finally {
+      setAdding(null);
+    }
   };
 
   return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="bg-surface-pure rounded-xl border border-surface-muted shadow-2xl w-full max-w-3xl my-8 flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="p-6 border-b border-surface-muted shrink-0">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <h2 className="text-2xl font-bold text-primary mb-2">{city.name}</h2>
+              <p className="text-sm text-on-surface-variant flex items-center gap-1 mb-3">
+                <span className="material-symbols-outlined text-[14px]">location_on</span>
+                {city.country}{city.region ? ` · ${city.region}` : ''}
+              </p>
+              {city.description && (
+                <p className="text-sm text-on-surface-variant leading-relaxed">{city.description}</p>
+              )}
+            </div>
+            <button onClick={onClose} className="text-on-surface-variant hover:text-error transition-colors cursor-pointer shrink-0">
+              <span className="material-symbols-outlined text-[28px]">close</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Body */}
+        {!showTripPicker ? (
+          <>
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-on-surface flex items-center gap-2">
+                  <span className="material-symbols-outlined text-secondary text-[22px]">explore</span>
+                  Recommended Activities
+                </h3>
+                {selected.size > 0 && (
+                  <span className="text-xs font-semibold bg-primary-container text-on-primary px-3 py-1 rounded-full">
+                    {selected.size} selected
+                  </span>
+                )}
+              </div>
+
+              {error && (
+                <div className="mb-4 text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px]">error</span>{error}
+                </div>
+              )}
+
+              {loading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="flex items-center gap-3 p-3 border border-surface-muted rounded-lg">
+                      <Skeleton className="w-10 h-10 rounded" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : activities.length === 0 ? (
+                <div className="text-center py-12 border-2 border-dashed border-surface-muted rounded-xl">
+                  <span className="material-symbols-outlined text-4xl text-on-surface-variant block mb-2">travel_explore</span>
+                  <p className="text-sm text-on-surface-variant">No suggestions available for this city yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {activities.map((act, idx) => {
+                    const isSelected = selected.has(idx);
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => toggleSelect(idx)}
+                        className={`flex items-start gap-3 p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-primary bg-primary-container/20'
+                            : 'border-surface-muted hover:border-primary/50 hover:bg-surface-muted/50'
+                        }`}
+                      >
+                        {/* Checkbox */}
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+                          isSelected ? 'bg-primary border-primary' : 'border-outline-variant'
+                        }`}>
+                          {isSelected && (
+                            <span className="material-symbols-outlined text-on-primary text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                              check
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Icon */}
+                        <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined text-secondary text-[22px]">
+                            {CATEGORY_ICON[act.category] || 'star'}
+                          </span>
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <h4 className="text-sm font-semibold text-on-surface">{act.name}</h4>
+                            {act.estimated_cost > 0 && (
+                              <span className="text-xs font-bold text-secondary shrink-0">
+                                ${act.estimated_cost}
+                              </span>
+                            )}
+                          </div>
+                          {act.description && (
+                            <p className="text-xs text-on-surface-variant mb-2 leading-relaxed">{act.description}</p>
+                          )}
+                          <span className="inline-block text-[10px] font-semibold tracking-wider bg-surface-muted text-on-surface-variant px-2 py-0.5 rounded capitalize">
+                            {act.category}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-surface-muted shrink-0">
+              <div className="flex gap-3">
+                <button onClick={onClose}
+                  className="flex-1 py-3 rounded-lg border border-surface-muted text-sm font-semibold text-on-surface hover:bg-surface-muted transition-colors cursor-pointer">
+                  Cancel
+                </button>
+                <button onClick={handleProceed} disabled={selected.size === 0}
+                  className="flex-1 py-3 rounded-lg bg-primary-container text-on-primary text-sm font-semibold hover:bg-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                  Proceed ({selected.size})
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Trip Picker */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <button onClick={() => setShowTripPicker(false)}
+                  className="text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
+                  <span className="material-symbols-outlined">arrow_back</span>
+                </button>
+                <h3 className="text-lg font-semibold text-on-surface">
+                  Add to Trip ({selected.size} {selected.size === 1 ? 'activity' : 'activities'})
+                </h3>
+              </div>
+
+              {error && (
+                <div className="mb-4 text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px]">error</span>{error}
+                </div>
+              )}
+
+              {successMsg && (
+                <div className="mb-4 text-xs text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px]">check_circle</span>{successMsg}
+                </div>
+              )}
+
+              {tripsLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 rounded-lg" />)}
+                </div>
+              ) : trips.length === 0 ? (
+                <div className="text-center py-12 border-2 border-dashed border-surface-muted rounded-xl">
+                  <span className="material-symbols-outlined text-4xl text-on-surface-variant block mb-2">luggage</span>
+                  <p className="text-sm text-on-surface-variant mb-1">No trips yet.</p>
+                  <p className="text-xs text-on-surface-variant">Create a trip first, then add cities and activities to it.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {trips.map(trip => {
+                    const isAdding = adding === trip.id;
+                    const startFmt = trip.start_date
+                      ? new Date(trip.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : null;
+
+                    return (
+                      <div
+                        key={trip.id}
+                        className="flex items-center gap-3 p-4 rounded-lg border border-surface-muted hover:bg-surface-muted/50 transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-on-surface truncate">{trip.title}</p>
+                          <p className="text-xs text-on-surface-variant capitalize">
+                            {trip.status}{startFmt ? ` · ${startFmt}` : ''}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleAddToTrip(trip)}
+                          disabled={isAdding || !!adding}
+                          className="shrink-0 px-4 py-2 rounded-lg bg-primary-container text-on-primary text-xs font-semibold hover:bg-primary transition-colors disabled:opacity-60 cursor-pointer flex items-center gap-1.5"
+                        >
+                          {isAdding ? (
+                            <>
+                              <span className="material-symbols-outlined text-[14px] animate-spin">progress_activity</span>
+                              Adding...
+                            </>
+                          ) : (
+                            <>
+                              <span className="material-symbols-outlined text-[14px]">add</span>
+                              Add Here
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-surface-muted shrink-0">
+              <button onClick={() => setShowTripPicker(false)}
+                className="w-full py-3 rounded-lg border border-surface-muted text-sm font-semibold text-on-surface hover:bg-surface-muted transition-colors cursor-pointer">
+                Back to Activities
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Add-to-Trip Modal (simple version, city only) ── */
+function AddToTripModal({ city, onClose }) {
+  const [trips,     setTrips]     = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [adding,    setAdding]    = useState(null);
+  const [added,     setAdded]     = useState([]);
+  const [error,     setError]     = useState('');
+
+  useEffect(() => {
+    tripsApi.list({ limit: 50, sort_by: 'created_at' })
+      .then(res => setTrips(res.items || []))
+      .catch(() => setError('Could not load your trips.'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleAdd = async (trip) => {
+    setAdding(trip.id);
+    setError('');
+    try {
+      await stopsApi.create(trip.id, {
+        city_name:       city.name,
+        country:         city.country,
+        duration_nights: 1,
+      });
+      setAdded(prev => [...prev, trip.id]);
+    } catch (e) {
+      setError(e.message || 'Failed to add city to trip.');
+    } finally {
+      setAdding(null);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-surface-pure rounded-xl border border-surface-muted shadow-xl w-full max-w-sm">
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-surface-muted">
+          <div>
+            <h3 className="text-base font-semibold text-on-surface">Add to Trip</h3>
+            <p className="text-xs text-on-surface-variant mt-0.5 flex items-center gap-1">
+              <span className="material-symbols-outlined text-[14px]">location_on</span>
+              {city.name}, {city.country}
+            </p>
+          </div>
+          <button onClick={onClose} className="text-on-surface-variant hover:text-error transition-colors cursor-pointer p-1">
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-4 max-h-72 overflow-y-auto">
+          {error && (
+            <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2 mb-3">{error}</p>
+          )}
+          {loading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 rounded-lg" />)}
+            </div>
+          ) : trips.length === 0 ? (
+            <div className="text-center py-6">
+              <span className="material-symbols-outlined text-3xl text-on-surface-variant block mb-2">luggage</span>
+              <p className="text-sm text-on-surface-variant">No trips yet.</p>
+              <p className="text-xs text-on-surface-variant mt-1">Create a trip first, then add cities to it.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {trips.map(trip => {
+                const isAdded  = added.includes(trip.id);
+                const isAdding = adding === trip.id;
+                const startFmt = trip.start_date
+                  ? new Date(trip.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  : null;
+
+                return (
+                  <div
+                    key={trip.id}
+                    className="flex items-center justify-between gap-3 p-3 rounded-lg border border-surface-muted hover:bg-surface-muted/40 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-on-surface truncate">{trip.title}</p>
+                      <p className="text-xs text-on-surface-variant capitalize">
+                        {trip.status}{startFmt ? ` · ${startFmt}` : ''}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => !isAdded && handleAdd(trip)}
+                      disabled={isAdding || isAdded}
+                      className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer disabled:cursor-default ${
+                        isAdded
+                          ? 'bg-accent-teal-light text-on-secondary-container'
+                          : 'bg-primary-container text-on-primary hover:bg-primary'
+                      } disabled:opacity-80`}
+                    >
+                      {isAdding ? (
+                        <span className="material-symbols-outlined text-[14px] animate-spin">progress_activity</span>
+                      ) : isAdded ? (
+                        <><span className="material-symbols-outlined text-[14px]">check</span>Added</>
+                      ) : (
+                        <><span className="material-symbols-outlined text-[14px]">add</span>Add</>
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="p-4 pt-0">
+          <button onClick={onClose}
+            className="w-full py-2.5 rounded-lg border border-surface-muted text-sm font-semibold text-on-surface hover:bg-surface-muted transition-colors cursor-pointer">
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Main Page ───────────────────────────────────────────────────── */
+export default function CitySearch() {
+  const [cities,         setCities]         = useState([]);
+  const [total,          setTotal]          = useState(0);
+  const [page,           setPage]           = useState(1);
+  const [hasMore,        setHasMore]        = useState(false);
+  const [loading,        setLoading]        = useState(true);
+  const [loadingMore,    setLoadingMore]    = useState(false);
+  const [searchQuery,    setSearchQuery]    = useState('');
+  const [selectedRegion, setSelectedRegion] = useState('All');
+  const [error,          setError]          = useState('');
+  const [detailCity,     setDetailCity]     = useState(null); // city shown in detail modal
+  const [quickAddCity,   setQuickAddCity]   = useState(null); // city shown in quick-add modal
+
+  const LIMIT = 12;
+
+  const fetchCities = useCallback(async (reset = false) => {
+    const currentPage = reset ? 1 : page;
+    if (reset) { setLoading(true); setCities([]); setPage(1); }
+    else        setLoadingMore(true);
+
+    try {
+      const params = { page: currentPage, limit: LIMIT };
+      if (searchQuery.trim())       params.q      = searchQuery.trim();
+      if (selectedRegion !== 'All') params.region = selectedRegion;
+
+      const res = await citiesApi.list(params);
+      setCities(prev => reset ? (res.items || []) : [...prev, ...(res.items || [])]);
+      setTotal(res.total || 0);
+      setHasMore(res.has_more || false);
+      if (!reset) setPage(p => p + 1);
+    } catch {
+      setError('Failed to load cities.');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [searchQuery, selectedRegion, page]); // eslint-disable-line
+
+  useEffect(() => { fetchCities(true); }, [selectedRegion]); // eslint-disable-line
+
+  const handleSearch = (e) => { e.preventDefault(); fetchCities(true); };
+
+  return (
     <div className="flex flex-col gap-6">
+      {/* Modals */}
+      {detailCity && (
+        <CityDetailModal city={detailCity} onClose={() => setDetailCity(null)} />
+      )}
+      {quickAddCity && (
+        <AddToTripModal city={quickAddCity} onClose={() => setQuickAddCity(null)} />
+      )}
+
       {/* Header */}
       <header className="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
         <div>
           <h2 className="text-4xl md:text-5xl font-bold text-primary tracking-tight">Find Destinations</h2>
-          <p className="text-sm md:text-base text-on-surface-variant mt-2">Discover and add cities to your next adventure.</p>
+          <p className="text-sm md:text-base text-on-surface-variant mt-2">
+            {loading ? 'Loading…' : `${total.toLocaleString()} destination${total !== 1 ? 's' : ''} available`}
+          </p>
         </div>
-        
-        {/* Quick Filters */}
-        <div className="flex gap-2 overflow-x-auto pb-2 xl:pb-0 scrollbar-hide">
-          {regions.map(reg => {
-            const isActive = selectedRegion === reg;
-            return (
-              <button
-                key={reg}
-                onClick={() => setSelectedRegion(reg)}
-                className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold tracking-wider transition-colors cursor-pointer border ${
-                  isActive
-                    ? 'border-primary bg-accent-teal-light text-primary'
-                    : 'border-outline-variant bg-surface-pure text-on-surface-variant hover:border-primary hover:text-primary'
-                }`}
-              >
-                {reg}
-              </button>
-            );
-          })}
-        </div>
+        <form onSubmit={handleSearch} className="flex items-center gap-3 w-full xl:w-auto">
+          <div className="relative flex-1 xl:w-72">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+            <input
+              className="w-full pl-10 pr-4 py-2.5 bg-surface-pure border border-surface-muted rounded-lg focus:border-primary focus:outline-none text-sm"
+              placeholder="Search city, country..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              type="text"
+            />
+          </div>
+          <button type="submit"
+            className="px-5 py-2.5 bg-primary-container text-on-primary rounded-lg text-sm font-semibold hover:bg-primary transition-colors cursor-pointer shrink-0">
+            Search
+          </button>
+        </form>
       </header>
 
-      {/* Search Bar Area */}
-      <div className="relative w-full max-w-3xl mx-auto mb-6">
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <span className="material-symbols-outlined text-outline text-[20px]">search</span>
-        </div>
-        <input 
-          className="w-full pl-12 pr-28 py-3.5 rounded-xl border border-surface-muted bg-surface-pure text-sm focus:ring-2 focus:ring-primary focus:border-primary transition-shadow shadow-sm placeholder:text-outline-variant outline-none" 
-          placeholder="Search cities, countries, or regions..." 
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <button className="absolute right-2 top-1.5 bottom-1.5 px-6 bg-primary-container text-on-primary rounded-lg text-xs font-semibold tracking-wider hover:bg-primary transition-colors cursor-pointer">
-          Search
-        </button>
+      {/* Region filter pills */}
+      <div className="flex gap-2 flex-wrap">
+        {REGIONS.map(r => (
+          <button key={r} onClick={() => setSelectedRegion(r)}
+            className={`px-4 py-2 rounded-full text-sm font-semibold transition-all cursor-pointer border ${
+              selectedRegion === r
+                ? 'bg-primary-container text-on-primary border-primary shadow-sm'
+                : 'bg-surface-pure text-on-surface-variant border-surface-muted hover:border-outline-variant'
+            }`}>
+            {r}
+          </button>
+        ))}
       </div>
 
-      {/* Bento Grid Results */}
-      {filteredCities.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCities.map((city) => {
-            const isAdded = addedCities.includes(city.id);
-            if (city.featured) {
-              return (
-                <div 
-                  key={city.id} 
-                  className="md:col-span-2 relative rounded-2xl overflow-hidden group min-h-[300px] shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <div 
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" 
-                    style={{ backgroundImage: `url('${city.image}')` }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-6 flex flex-col md:flex-row md:items-end justify-between gap-4 z-10 text-white">
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2 py-0.5 rounded bg-accent-teal-light/20 backdrop-blur-md border border-accent-teal-light/30 text-accent-teal-light text-[9px] font-bold tracking-wider uppercase">{city.country}</span>
-                        <span className="flex text-secondary-container">
-                          {renderCostSymbol(city.cost)}
-                        </span>
-                      </div>
-                      <h3 className="text-2xl sm:text-4xl font-bold mb-1">{city.name}</h3>
-                      <p className="text-xs sm:text-sm text-surface-muted flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[16px]">trending_up</span> {city.popularity}
-                      </p>
+      {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{error}</div>}
+
+      {/* City grid */}
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="rounded-xl border border-surface-muted overflow-hidden">
+              <Skeleton className="h-44 rounded-none" />
+              <div className="p-4 space-y-2">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : cities.length === 0 ? (
+        <div className="text-center py-20">
+          <span className="material-symbols-outlined text-5xl text-on-surface-variant block mb-3">location_off</span>
+          <p className="text-lg font-semibold text-on-surface">No destinations found</p>
+          <p className="text-sm text-on-surface-variant mt-1">
+            {searchQuery ? `No results for "${searchQuery}"` : 'Try a different region.'}
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {cities.map(city => (
+              <div key={city.id}
+                className="bg-surface-pure rounded-xl border border-surface-muted overflow-hidden hover:shadow-lg transition-all group flex flex-col cursor-pointer"
+                onClick={() => setDetailCity(city)}
+              >
+                {/* Image */}
+                <div className="relative h-44 overflow-hidden shrink-0">
+                  {city.cover_image_url ? (
+                    <img src={city.cover_image_url} alt={city.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-primary-container/40 to-secondary/20 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-primary/30 text-5xl">location_city</span>
                     </div>
-                    <button 
-                      onClick={() => toggleCity(city.id)}
-                      className={`px-5 py-2.5 rounded-lg text-xs font-semibold tracking-wider transition-colors flex items-center gap-2 shadow-lg w-fit cursor-pointer ${
-                        isAdded 
-                          ? 'bg-primary-container text-on-primary' 
-                          : 'bg-surface-pure text-primary-container hover:bg-surface-muted'
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-[18px]">{isAdded ? 'check' : 'add'}</span>
-                      {isAdded ? 'Added' : 'Add to Trip'}
-                    </button>
+                  )}
+                  {city.popularity_label && (
+                    <span className="absolute top-3 left-3 bg-primary-container/90 text-on-primary text-[10px] font-bold tracking-wider px-2 py-1 rounded-sm backdrop-blur-sm">
+                      {city.popularity_label}
+                    </span>
+                  )}
+                  {city.is_featured && (
+                    <span className="absolute top-3 right-3 bg-secondary/90 text-on-secondary text-[10px] font-bold tracking-wider px-2 py-1 rounded-sm backdrop-blur-sm">
+                      Featured
+                    </span>
+                  )}
+
+                  {/* Hover overlay with explore icon */}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="flex flex-col items-center gap-2 text-white">
+                      <span className="material-symbols-outlined text-4xl">travel_explore</span>
+                      <span className="text-xs font-semibold tracking-wide">Explore Activities</span>
+                    </div>
                   </div>
                 </div>
-              );
-            }
-            return (
-              <div 
-                key={city.id} 
-                className="relative rounded-2xl overflow-hidden group border border-surface-muted bg-surface-pure flex flex-col justify-between hover:shadow-md transition-shadow"
-              >
-                <div 
-                  className="h-48 bg-cover bg-center transition-transform duration-700 group-hover:scale-103" 
-                  style={{ backgroundImage: `url('${city.image}')` }}
-                />
-                <div className="p-5 flex flex-col flex-grow justify-between bg-surface-pure relative z-10">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-bold text-outline tracking-wider uppercase">{city.country}</span>
-                      <span className="flex">
-                        {renderCostSymbol(city.cost)}
-                      </span>
-                    </div>
-                    <h3 className="text-lg font-bold text-on-surface mb-1">{city.name}</h3>
-                    <p className="text-xs text-on-surface-variant line-clamp-2 leading-relaxed">{city.description}</p>
+
+                {/* Info */}
+                <div className="p-4 flex flex-col flex-1">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <h3 className="text-lg font-semibold text-on-surface leading-tight">{city.name}</h3>
+                    <CostDots level={city.cost_level} />
                   </div>
-                  <button 
-                    onClick={() => toggleCity(city.id)}
-                    className={`mt-4 w-full py-2 border rounded-lg text-xs font-semibold tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer ${
-                      isAdded 
-                        ? 'bg-primary-container text-on-primary border-transparent' 
-                        : 'border-primary-container text-primary-container hover:bg-primary-container hover:text-surface-pure'
-                    }`}
+                  <p className="text-xs font-semibold text-on-surface-variant mb-2 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">location_on</span>
+                    {city.country}{city.region ? ` · ${city.region}` : ''}
+                  </p>
+                  {city.description && (
+                    <p className="text-xs text-on-surface-variant line-clamp-2 leading-relaxed mb-3">{city.description}</p>
+                  )}
+
+                  {/* Quick Add button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setQuickAddCity(city); }}
+                    className="mt-auto w-full py-2 rounded-lg bg-surface-muted hover:bg-primary-container hover:text-on-primary text-on-surface-variant text-xs font-semibold tracking-wide transition-all cursor-pointer flex items-center justify-center gap-1.5 border border-surface-muted hover:border-primary group/btn"
                   >
-                    <span className="material-symbols-outlined text-[18px]">{isAdded ? 'check' : 'add'}</span>
-                    {isAdded ? 'Added' : 'Add to Trip'}
+                    <span className="material-symbols-outlined text-[16px] group-hover/btn:text-on-primary">add_location_alt</span>
+                    Quick Add to Trip
                   </button>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="text-center py-12 bg-surface-pure rounded-xl border border-surface-muted">
-          <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-2">search_off</span>
-          <p className="text-sm font-semibold text-on-surface-variant">No destinations found matching your search.</p>
-        </div>
-      )}
+            ))}
+          </div>
 
-      {/* Load More */}
-      <div className="mt-6 flex justify-center">
-        <button className="px-6 py-2.5 bg-surface-container-high text-on-surface rounded-lg text-xs font-semibold tracking-wider hover:bg-surface-container-highest transition-colors flex items-center gap-2 cursor-pointer border border-transparent">
-          Load More Destinations <span className="material-symbols-outlined text-[18px]">expand_more</span>
-        </button>
-      </div>
+          {hasMore && (
+            <div className="flex justify-center pt-4">
+              <button onClick={() => fetchCities(false)} disabled={loadingMore}
+                className="px-8 py-3 rounded-lg border border-surface-muted text-sm font-semibold text-on-surface hover:bg-surface-muted transition-colors disabled:opacity-60 flex items-center gap-2 cursor-pointer">
+                {loadingMore
+                  ? <><span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>Loading…</>
+                  : `Load More (${total - cities.length} remaining)`}
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

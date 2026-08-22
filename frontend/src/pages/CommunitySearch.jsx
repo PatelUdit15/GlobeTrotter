@@ -1,273 +1,584 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { communityApi, uploadsApi } from '../api';
+import { useAuth } from '../context/AuthContext';
 
-const postsData = [
-  {
-    id: 1,
-    author: {
-      name: 'Sarah Jenkins',
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBTE3--LtAnmHvytjExECKxr5C0NKLjL1MFUFJBWJvKtk-RTw6xosFTO-DSOOz2HdP44QHKbOGbYayv8ccRlEodppsdVgSUJx5FVgQ4TF860MogEXYfRLMUx2RuNs2Z_kdLnCL7T6PZyznWniVg9_HbiQbQajHrVnTHycGhDoqwa6rXJv1BK4iUe4OLIPeZMMIRzbUsz3aiH2GpN98ueShVUOOXf5TdBBKAGvWVMGsprbNjGIqBKYM',
-    },
-    location: 'Kyoto, Japan',
-    timeAgo: '2 hours ago',
-    title: 'Autumn Colors in Kyoto: A 5-Day Itinerary',
-    content: "Just got back from an incredible trip to Kyoto. The fall foliage was absolutely stunning. I've put together my daily schedule focusing on the lesser-known temples to avoid the crowds. Highly recommend the early morning hike up Fushimi Inari!",
-    images: [
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBJkAylo-r7Mh0bbhrjoziU9oC_Kp3hzaCunNSW4HAJxSh5i3ODbhAg-I6mp_guMX9WBngZ3vfqN7sZGHpJbPDm_kjdf5Jkn3iZ1zcdMWG66E-T7qKU2RaraPEhHZwjH49PDfuScddj6ExHqSE_dBj97r33MA45wpH6-uAUdhsBterLY8-jfYLeM4BMp6X8v9XqxfMU5SOSFXOeBCm018J_3uVrVh90dySmf2vGMfibcv5Dd0FNbmI',
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDFOHL61WQ8WemdMpEGmnW1a3mzflixuQIJVTUktrV6R3IpiGl2aV0AhoPRE7ecNeam1YhcpU7uahb4YPBCn7pgOeZwKcMUI2DdSZQhCz_NCa_B9p3BG8meYk4RpW0sENlXstksVF-yI1YMt7IYWUlOc2-BB4zN_Y60LUbTYMNB2mR3lVHIjyCY4tieCXf_kgRZDECHf-9Gf8uB5T5nMZ-am2ifz2e00P85vYpddbUuJ68vv-2Ffx8',
-    ],
-    tags: ['Japan', 'Autumn', 'Hiking'],
-    likes: 245,
-    comments: 42,
-  },
-  {
-    id: 2,
-    author: {
-      name: 'Marcus Thorne',
-      avatar: null,
-    },
-    location: 'Swiss Alps',
-    timeAgo: '5 hours ago',
-    title: 'Minimalist Packing for 2 Weeks in Europe',
-    content: 'Sharing my exact packing list that fits entirely into a 30L backpack. Traveling between climates without checking a bag changed the game for this trip.',
-    itineraryPreview: [
-      { days: 'Day 1-3', title: 'Zurich & Lucerne' },
-      { days: 'Day 4-7', title: 'Zermatt' },
-    ],
-    tags: ['Europe', 'Backpacking', 'PackingTips'],
-    likes: 128,
-    comments: 15,
-  },
-];
+function Skeleton({ className }) {
+  return <div className={`animate-pulse bg-surface-muted rounded ${className}`} />;
+}
 
-const trendingDestinations = [
-  {
-    name: 'Amalfi Coast',
-    country: 'Italy',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCvA8MXmx5PLs-Z011mcRwXWoExNQ6zOhlGNaLDWHpYC7waX5cxvp2AxeaoNDlQ1FcgTII6nm0wOrOxLUBXsCkRDkxNrAJtucjQ1qCJ6GT85ry8nqwWkesF4e9-fXc00NYbDZPXFYVYaqESfHepTwUTapZ2gzr1PCCSBCcAF8Dhghc8GsJdfhnkc4Zt1UcxF41RVQSk6TFxT0S9eGaJSvzMgK0uFDkm_qiBYxXi7wcfvYiUALeZc_E',
-  },
-  {
-    name: 'Reykjavik',
-    country: 'Iceland',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBir-CralPzAatvfl5FNhJACpgwk5TMGAfmwlZykVmjFZy_ZqZ4YpPxn7SVkqAODJgOmpc1j3lQOktaAgdf3wJpbZPRbTEZzuxQhodW8_ghOVCrUneE5CxnkYiqQBdym_zWmsGjiR9cB6ImOiKfHis-nRW3DwQOrxHvsJsSmm2eBsP-MAK71kkLfFjPaL2_mViXmWGZ6Rtg8vtlygnrUbaQ_NvmSgGCiqvVPiQutgnlWUMyRh_9ewY',
-  },
-  {
-    name: 'Taipei',
-    country: 'Taiwan',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCEsDQoYHlfDJwZTNML66qse5nOvKN8nU0O6tWzfGWcco1xOwJYZAum6lEmy1Oq8saGZPuTQ_zT7qTK1zdrH7qSSHWZHCeXxlZl0Kl9hMaLIvUBEoEs1oYV2GGjDzRXFzGC3vI8r2DTvezk73bpEi_HQRlbq4t-IEoQDXY40QX_R8ioSt-OmcOpndGYudBUJCnyDr_UnoV8K8NRCh99AO2JSma-J_mAjs_F1vZkvYPs26IEwV3UMds',
-  },
-];
+function TimeAgo({ dateStr }) {
+  if (!dateStr) return null;
+  const diff  = Date.now() - new Date(dateStr).getTime();
+  const mins  = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days  = Math.floor(diff / 86400000);
+  const label = mins < 1 ? 'just now' : mins < 60 ? `${mins}m ago` : hours < 24 ? `${hours}h ago` : `${days}d ago`;
+  return <span>{label}</span>;
+}
 
-const topContributors = [
-  { name: 'Alex Rivera', points: 120, initial: 'A' },
-  { name: 'Elena K.', points: 95, initial: 'E' },
-];
+/* ── Create Post Modal ──────────────────────────────────────────── */
+function CreatePostModal({ onClose, onCreated }) {
+  const [title,    setTitle]    = useState('');
+  const [content,  setContent]  = useState('');
+  const [location, setLocation] = useState('');
+  const [tags,     setTags]     = useState('');
+  const [files,    setFiles]    = useState([]);
+  const [previews, setPreviews] = useState([]);
+  const [saving,   setSaving]   = useState(false);
+  const [error,    setError]    = useState('');
 
-export default function CommunitySearch() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [likedPosts, setLikedPosts] = useState([]);
-  const [savedPosts, setSavedPosts] = useState([]);
+  const handleFiles = (e) => {
+    const selected = Array.from(e.target.files || []);
+    setFiles(selected);
+    setPreviews(selected.map(f => URL.createObjectURL(f)));
+  };
 
-  const toggleLike = (id) => {
-    if (likedPosts.includes(id)) {
-      setLikedPosts(likedPosts.filter(item => item !== id));
-    } else {
-      setLikedPosts([...likedPosts, id]);
+  const removeFile = (idx) => {
+    setFiles(f => f.filter((_, i) => i !== idx));
+    setPreviews(p => p.filter((_, i) => i !== idx));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!title.trim()) { setError('Title is required.'); return; }
+    setError('');
+    setSaving(true);
+    try {
+      // Upload images first
+      const imageUrls = [];
+      for (const file of files) {
+        const res = await uploadsApi.postImage(file);
+        imageUrls.push(res.url);
+      }
+
+      const tagList = tags.split(',').map(t => t.trim()).filter(Boolean);
+      const post = await communityApi.createPost({
+        title:      title.trim(),
+        content:    content.trim() || undefined,
+        location:   location.trim() || undefined,
+        tags:       tagList,
+        image_urls: imageUrls,
+      });
+      onCreated(post);
+      onClose();
+    } catch (err) {
+      setError(err.message || 'Failed to create post.');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const toggleSave = (id) => {
-    if (savedPosts.includes(id)) {
-      setSavedPosts(savedPosts.filter(item => item !== id));
-    } else {
-      setSavedPosts([...savedPosts, id]);
-    }
-  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-surface-pure rounded-xl border border-surface-muted shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-surface-muted shrink-0">
+          <h3 className="text-lg font-semibold text-on-surface">Share Your Journey</h3>
+          <button onClick={onClose} className="text-on-surface-variant hover:text-error transition-colors cursor-pointer p-1">
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
 
-  const filteredPosts = postsData.filter(post => 
-    post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    post.location.toLowerCase().includes(searchQuery.toLowerCase())
+        {/* Body */}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="overflow-y-auto flex-1 p-5 space-y-4">
+            {error && (
+              <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2 flex items-center gap-2">
+                <span className="material-symbols-outlined text-[16px]">error</span>{error}
+              </p>
+            )}
+
+            {/* Title */}
+            <div>
+              <label className="block text-xs font-semibold tracking-wider text-on-surface-variant mb-1">
+                Title <span className="text-error">*</span>
+              </label>
+              <input
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                placeholder="e.g. A week in Kyoto — what I loved"
+                required
+                className="w-full px-3 py-2.5 rounded-lg border border-surface-muted bg-surface-pure text-sm focus:outline-none focus:border-primary transition-colors"
+              />
+            </div>
+
+            {/* Location */}
+            <div>
+              <label className="block text-xs font-semibold tracking-wider text-on-surface-variant mb-1">Location</label>
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">location_on</span>
+                <input
+                  value={location}
+                  onChange={e => setLocation(e.target.value)}
+                  placeholder="e.g. Kyoto, Japan"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-surface-muted bg-surface-pure text-sm focus:outline-none focus:border-primary transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Content */}
+            <div>
+              <label className="block text-xs font-semibold tracking-wider text-on-surface-variant mb-1">Post Content</label>
+              <textarea
+                value={content}
+                onChange={e => setContent(e.target.value)}
+                placeholder="Share your experience, tips, or itinerary highlights..."
+                rows={5}
+                className="w-full px-3 py-2.5 rounded-lg border border-surface-muted bg-surface-pure text-sm focus:outline-none focus:border-primary resize-none transition-colors"
+              />
+            </div>
+
+            {/* Tags */}
+            <div>
+              <label className="block text-xs font-semibold tracking-wider text-on-surface-variant mb-1">Tags</label>
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">tag</span>
+                <input
+                  value={tags}
+                  onChange={e => setTags(e.target.value)}
+                  placeholder="japan, culture, budget  (comma separated)"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-surface-muted bg-surface-pure text-sm focus:outline-none focus:border-primary transition-colors"
+                />
+              </div>
+              <p className="text-[10px] text-on-surface-variant mt-1">Separate multiple tags with commas.</p>
+            </div>
+
+            {/* Images */}
+            <div>
+              <label className="block text-xs font-semibold tracking-wider text-on-surface-variant mb-1">Photos</label>
+
+              {/* Previews */}
+              {previews.length > 0 && (
+                <div className="flex gap-2 flex-wrap mb-3">
+                  {previews.map((src, i) => (
+                    <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-surface-muted group">
+                      <img src={src} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeFile(i)}
+                        className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-[12px]">close</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <label className="flex items-center justify-center gap-2 w-full py-3 rounded-lg border-2 border-dashed border-surface-muted hover:border-primary hover:bg-surface-muted/30 transition-colors cursor-pointer text-sm font-semibold text-on-surface-variant hover:text-primary">
+                <span className="material-symbols-outlined text-[20px]">add_photo_alternate</span>
+                {previews.length > 0 ? 'Add more photos' : 'Upload photos'}
+                <input type="file" accept="image/*" multiple className="sr-only" onChange={handleFiles} />
+              </label>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="flex gap-3 p-5 pt-0 border-t border-surface-muted mt-2 shrink-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2.5 rounded-lg border border-surface-muted text-sm font-semibold text-on-surface hover:bg-surface-muted transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 py-2.5 rounded-lg bg-primary-container text-on-primary text-sm font-semibold hover:bg-primary transition-colors disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              {saving && <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>}
+              {saving ? 'Publishing…' : 'Publish Post'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
+}
+
+/* ── Post Card ──────────────────────────────────────────────────── */
+function PostCard({ post, onLike, onSave }) {
+  const [liking, setLiking] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleLike = async () => {
+    if (liking) return;
+    setLiking(true);
+    await onLike(post);
+    setLiking(false);
+  };
+
+  const handleSave = async () => {
+    if (saving) return;
+    setSaving(true);
+    await onSave(post);
+    setSaving(false);
+  };
+
+  const authorInitials = post.author
+    ? `${post.author.first_name?.[0] || ''}${post.author.last_name?.[0] || ''}`.toUpperCase()
+    : '?';
+
+  return (
+    <article className="bg-surface-pure rounded-xl border border-surface-muted overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      {/* Author */}
+      <div className="p-4 flex items-center gap-3 border-b border-surface-muted/50">
+        <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-xs font-bold text-on-primary overflow-hidden border border-surface-muted shrink-0">
+          {post.author?.avatar_url
+            ? <img src={`http://localhost:5000${post.author.avatar_url}`} alt={authorInitials} className="w-full h-full object-cover" />
+            : authorInitials}
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-on-surface">
+            {post.author ? `${post.author.first_name} ${post.author.last_name}` : 'Unknown'}
+          </p>
+          <div className="flex items-center gap-2 text-xs text-on-surface-variant">
+            {post.location && (
+              <span className="flex items-center gap-0.5">
+                <span className="material-symbols-outlined text-[12px]">location_on</span>{post.location}
+              </span>
+            )}
+            {post.location && <span>·</span>}
+            <TimeAgo dateStr={post.created_at} />
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-4">
+        <h3 className="text-lg font-semibold text-on-surface mb-2 leading-snug">{post.title}</h3>
+        {post.content && (
+          <p className="text-sm text-on-surface-variant leading-relaxed line-clamp-3 mb-3">{post.content}</p>
+        )}
+
+        {/* Images */}
+        {post.images?.length > 0 && (
+          <div className={`grid gap-2 mb-3 ${post.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+            {post.images.slice(0, 2).map((img, i) => (
+              <div key={i} className="aspect-video rounded-lg overflow-hidden bg-surface-muted">
+                <img
+                  src={img.image_url.startsWith('http') ? img.image_url : `http://localhost:5000${img.image_url}`}
+                  alt=""
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Tags */}
+        {post.tags?.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {post.tags.map(t => (
+              <span key={t.id} className="text-[10px] font-semibold tracking-wider bg-surface-muted text-on-surface-variant px-2 py-0.5 rounded">
+                #{t.tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div className="px-4 pb-4 flex items-center gap-4 border-t border-surface-muted/50 pt-3">
+        <button
+          onClick={handleLike}
+          disabled={liking}
+          className={`flex items-center gap-1.5 text-sm font-semibold transition-colors cursor-pointer disabled:opacity-60 ${
+            post.is_liked ? 'text-secondary' : 'text-on-surface-variant hover:text-secondary'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[20px]" style={post.is_liked ? { fontVariationSettings: "'FILL' 1" } : {}}>
+            favorite
+          </span>
+          {post.likes_count}
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className={`flex items-center gap-1.5 text-sm font-semibold transition-colors cursor-pointer disabled:opacity-60 ${
+            post.is_saved ? 'text-primary' : 'text-on-surface-variant hover:text-primary'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[20px]" style={post.is_saved ? { fontVariationSettings: "'FILL' 1" } : {}}>
+            bookmark
+          </span>
+          {post.is_saved ? 'Saved' : 'Save'}
+        </button>
+        <div className="ml-auto flex items-center gap-1 text-xs text-on-surface-variant">
+          <span className="material-symbols-outlined text-[16px]">bookmark_border</span>
+          {post.saves_count} saves
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/* ── Main Page ──────────────────────────────────────────────────── */
+export default function CommunitySearch() {
+  const { user } = useAuth();
+
+  const [posts,        setPosts]        = useState([]);
+  const [trending,     setTrending]     = useState([]);
+  const [contributors, setContributors] = useState([]);
+  const [total,        setTotal]        = useState(0);
+  const [loading,      setLoading]      = useState(true);
+  const [searchQuery,  setSearchQuery]  = useState('');
+  const [sort,         setSort]         = useState('latest');
+  const [showNewPost,  setShowNewPost]  = useState(false);
+  const [error,        setError]        = useState('');
+
+  const fetchPosts = useCallback(async (q = '', s = 'latest') => {
+    setLoading(true);
+    try {
+      const res = await communityApi.posts({ q, sort: s, limit: 20 });
+      setPosts(res.items || []);
+      setTotal(res.total || 0);
+    } catch {
+      setError('Failed to load posts.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPosts('', sort);
+    communityApi.trending().then(setTrending).catch(() => {});
+    communityApi.topContribs().then(setContributors).catch(() => {});
+  }, [sort]); // eslint-disable-line
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    fetchPosts(searchQuery, sort);
+  };
+
+  const handleLike = async (post) => {
+    if (!user) return;
+    try {
+      const res = post.is_liked
+        ? await communityApi.unlike(post.id)
+        : await communityApi.like(post.id);
+      setPosts(prev => prev.map(p =>
+        p.id === post.id ? { ...p, is_liked: res.liked, likes_count: res.likes_count } : p
+      ));
+    } catch {}
+  };
+
+  const handleSave = async (post) => {
+    if (!user) return;
+    try {
+      const res = post.is_saved
+        ? await communityApi.unsave(post.id)
+        : await communityApi.save(post.id);
+      setPosts(prev => prev.map(p =>
+        p.id === post.id ? { ...p, is_saved: res.saved, saves_count: res.saves_count } : p
+      ));
+    } catch {}
+  };
+
+  // Prepend new post to feed after creation
+  const handlePostCreated = (newPost) => {
+    setPosts(prev => [newPost, ...prev]);
+    setTotal(t => t + 1);
+  };
 
   return (
     <div>
-      {/* Header & Search/Filter Section */}
+      {showNewPost && (
+        <CreatePostModal
+          onClose={() => setShowNewPost(false)}
+          onCreated={handlePostCreated}
+        />
+      )}
+
+      {/* Header */}
       <section className="mb-8">
-        <h2 className="text-3xl font-semibold text-primary mb-6">Community Hub</h2>
-        <div className="glass-panel p-4 rounded-xl border border-surface-muted flex flex-col md:flex-row gap-4 items-center">
-          <div className="relative flex-1 w-full">
+        <div className="flex items-center justify-between mb-6 gap-4">
+          <h2 className="text-3xl font-semibold text-primary">Community Hub</h2>
+          {user && (
+            <button
+              onClick={() => setShowNewPost(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-primary-container text-on-primary rounded-lg text-sm font-semibold hover:bg-primary transition-colors shadow-sm cursor-pointer shrink-0"
+            >
+              <span className="material-symbols-outlined text-[18px]">edit_note</span>
+              <span className="hidden sm:inline">New Post</span>
+            </button>
+          )}
+        </div>
+
+        {/* Search + Sort bar */}
+        <div className="bg-surface-pure p-4 rounded-xl border border-surface-muted flex flex-col md:flex-row gap-4 items-center">
+          <form onSubmit={handleSearch} className="relative flex-1 w-full">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
-            <input 
-              className="w-full pl-10 pr-4 py-2.5 bg-surface-pure border border-surface-muted rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-sm text-on-surface placeholder:text-outline-variant outline-none" 
-              placeholder="Search destinations, activities, or users..." 
-              type="text"
+            <input
+              className="w-full pl-10 pr-4 py-2.5 bg-surface-pure border border-surface-muted rounded-lg focus:outline-none focus:border-primary text-sm outline-none"
+              placeholder="Search posts, destinations, or topics..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
+              type="text"
             />
-          </div>
-          <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
-            <button className="px-4 py-2 bg-surface-muted text-on-surface-variant rounded-full text-xs font-semibold tracking-wider whitespace-nowrap hover:bg-surface-container-high transition-colors cursor-pointer">
-              Group by
-            </button>
-            <button className="px-4 py-2 bg-surface-muted text-on-surface-variant rounded-full text-xs font-semibold tracking-wider whitespace-nowrap flex items-center gap-1 hover:bg-surface-container-high transition-colors cursor-pointer">
-              <span className="material-symbols-outlined text-[18px]">filter_list</span> Filter
-            </button>
-            <button className="px-4 py-2 bg-surface-muted text-on-surface-variant rounded-full text-xs font-semibold tracking-wider whitespace-nowrap flex items-center gap-1 hover:bg-surface-container-high transition-colors cursor-pointer">
-              <span className="material-symbols-outlined text-[18px]">sort</span> Sort by
-            </button>
+          </form>
+
+          <div className="flex gap-2 w-full md:w-auto">
+            {['latest', 'trending'].map(s => (
+              <button
+                key={s}
+                onClick={() => setSort(s)}
+                className={`flex-1 md:flex-initial px-4 py-2 rounded-full text-xs font-semibold tracking-wider whitespace-nowrap transition-colors cursor-pointer capitalize border ${
+                  sort === s
+                    ? 'bg-primary-container text-on-primary border-primary'
+                    : 'bg-surface-muted text-on-surface-variant border-surface-muted hover:bg-surface-container-high'
+                }`}
+              >
+                {s === 'trending' && (
+                  <span className="material-symbols-outlined text-[14px] align-middle mr-1">local_fire_department</span>
+                )}
+                {s.charAt(0).toUpperCase() + s.slice(1)}
+              </button>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Community Feed Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Main Feed Column */}
+        {/* Feed */}
         <div className="lg:col-span-8 space-y-6">
-          {filteredPosts.length > 0 ? (
-            filteredPosts.map((post) => {
-              const isLiked = likedPosts.includes(post.id);
-              const isSaved = savedPosts.includes(post.id);
-              return (
-                <article key={post.id} className="bg-surface-pure rounded-xl border border-surface-muted overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                  <div className="p-4 flex items-center justify-between border-b border-surface-muted/50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center overflow-hidden border border-surface-muted">
-                        {post.author.avatar ? (
-                          <img className="w-full h-full object-cover" alt={post.author.name} src={post.author.avatar} />
-                        ) : (
-                          <span className="material-symbols-outlined text-outline text-2xl">person</span>
-                        )}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-on-surface text-sm leading-tight">{post.author.name}</h4>
-                        <p className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider mt-0.5">{post.timeAgo} • {post.location}</p>
-                      </div>
-                    </div>
-                    <button className="text-on-surface-variant hover:bg-surface-muted p-2 rounded-full transition-colors cursor-pointer">
-                      <span className="material-symbols-outlined">more_vert</span>
-                    </button>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="text-xl font-semibold text-primary mb-2">{post.title}</h3>
-                    <p className="text-sm text-on-surface leading-relaxed mb-4">{post.content}</p>
-                    
-                    {post.images && post.images.length > 0 && (
-                      <div className="grid grid-cols-2 gap-2 mb-4 h-48">
-                        {post.images.map((img, idx) => (
-                          <div key={idx} className="rounded-lg overflow-hidden bg-surface-muted">
-                            <img className="w-full h-full object-cover" alt="Post attachment" src={img} />
-                          </div>
-                        ))}
-                      </div>
-                    )}
+          {error && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-4 py-3">{error}</div>
+          )}
 
-                    {post.itineraryPreview && (
-                      <div className="bg-surface-container p-4 rounded-lg border border-surface-muted/50 space-y-3 mb-4">
-                        {post.itineraryPreview.map((item, idx) => (
-                          <div key={idx} className="flex items-center gap-3">
-                            <span className={`w-1 h-8 rounded-full ${idx === 0 ? 'bg-secondary' : 'bg-secondary opacity-50'}`} />
-                            <div>
-                              <p className="text-xs font-bold text-primary tracking-wider uppercase">{item.days}</p>
-                              <p className="text-sm font-semibold text-on-surface">{item.title}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="flex flex-wrap gap-2">
-                      {post.tags.map(tag => (
-                        <span key={tag} className="px-3 py-1 bg-surface-muted text-primary rounded-full text-xs font-semibold tracking-wider">
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
+          {loading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="bg-surface-pure rounded-xl border border-surface-muted p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="w-10 h-10 rounded-full" />
+                  <div className="space-y-1.5 flex-1">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-24" />
                   </div>
-                  <div className="bg-surface-container-low px-4 py-3 flex items-center justify-between border-t border-surface-muted">
-                    <div className="flex gap-4">
-                      <button 
-                        onClick={() => toggleLike(post.id)}
-                        className={`flex items-center gap-1 transition-colors cursor-pointer ${
-                          isLiked ? 'text-error font-semibold' : 'text-on-surface-variant hover:text-error'
-                        }`}
-                      >
-                        <span className="material-symbols-outlined text-[20px]" style={isLiked ? { fontVariationSettings: "'FILL' 1" } : {}}>favorite</span>
-                        <span className="text-xs font-semibold">{post.likes + (isLiked ? 1 : 0)}</span>
-                      </button>
-                      <button className="flex items-center gap-1 text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
-                        <span className="material-symbols-outlined text-[20px]">chat_bubble</span>
-                        <span className="text-xs font-semibold">{post.comments}</span>
-                      </button>
-                    </div>
-                    <button 
-                      onClick={() => toggleSave(post.id)}
-                      className={`px-4 py-1.5 border rounded-lg text-xs font-semibold tracking-wider transition-colors cursor-pointer ${
-                        isSaved 
-                          ? 'bg-primary-container text-on-primary border-transparent' 
-                          : 'border-primary text-primary hover:bg-primary/5'
-                      }`}
-                    >
-                      {isSaved ? 'Saved' : 'Save Itinerary'}
-                    </button>
-                  </div>
-                </article>
-              );
-            })
-          ) : (
-            <div className="text-center py-12 bg-surface-pure rounded-xl border border-surface-muted">
-              <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-2">search_off</span>
-              <p className="text-sm font-semibold text-on-surface-variant">No posts found matching your search.</p>
+                </div>
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+              </div>
+            ))
+          ) : posts.length === 0 ? (
+            <div className="text-center py-16 bg-surface-pure rounded-xl border border-surface-muted">
+              <span className="material-symbols-outlined text-5xl text-on-surface-variant block mb-3">forum</span>
+              <p className="text-base font-semibold text-on-surface mb-1">No posts found</p>
+              <p className="text-sm text-on-surface-variant mb-4">
+                {searchQuery ? `Nothing matches "${searchQuery}"` : 'Be the first to share your journey!'}
+              </p>
+              {user && (
+                <button
+                  onClick={() => setShowNewPost(true)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-container text-on-primary rounded-lg text-sm font-semibold hover:bg-primary transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[18px]">edit_note</span>
+                  Write First Post
+                </button>
+              )}
             </div>
+          ) : (
+            <>
+              <p className="text-xs text-on-surface-variant">{total} post{total !== 1 ? 's' : ''}</p>
+              {posts.map(post => (
+                <PostCard key={post.id} post={post} onLike={handleLike} onSave={handleSave} />
+              ))}
+            </>
           )}
         </div>
 
-        {/* Sidebar / Widgets Column */}
+        {/* Sidebar */}
         <div className="lg:col-span-4 space-y-6">
-          {/* Trending Destinations Card */}
+          {/* Write post CTA (sidebar) */}
+          {user && (
+            <button
+              onClick={() => setShowNewPost(true)}
+              className="w-full flex items-center gap-3 p-4 bg-surface-pure rounded-xl border border-surface-muted hover:border-primary hover:shadow-sm transition-all cursor-pointer text-left group"
+            >
+              <div className="w-9 h-9 rounded-full bg-primary-container text-on-primary flex items-center justify-center text-xs font-bold shrink-0">
+                {`${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase()}
+              </div>
+              <span className="text-sm text-on-surface-variant group-hover:text-primary transition-colors">
+                Share your travel story…
+              </span>
+              <span className="ml-auto material-symbols-outlined text-[18px] text-on-surface-variant group-hover:text-primary transition-colors">
+                edit_note
+              </span>
+            </button>
+          )}
+
+          {/* Trending Destinations */}
           <div className="bg-surface-pure rounded-xl border border-surface-muted p-5 shadow-sm">
-            <h3 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>trending_up</span>
+            <h3 className="text-base font-semibold text-on-surface mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-secondary text-[20px]">local_fire_department</span>
               Trending Destinations
             </h3>
-            <ul className="space-y-4">
-              {trendingDestinations.map((dest) => (
-                <li key={dest.name} className="flex items-center justify-between group cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-lg bg-surface-muted overflow-hidden">
-                      <img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt={dest.name} src={dest.image} />
+            {trending.length === 0 ? (
+              <p className="text-sm text-on-surface-variant">No trending data yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {trending.map((dest, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-surface-muted shrink-0">
+                      {dest.cover_image_url ? (
+                        <img
+                          src={dest.cover_image_url.startsWith('http') ? dest.cover_image_url : `http://localhost:5000${dest.cover_image_url}`}
+                          alt={dest.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="material-symbols-outlined text-on-surface-variant text-[18px]">location_city</span>
+                        </div>
+                      )}
                     </div>
-                    <div>
-                      <h4 className="font-bold text-on-surface text-sm">{dest.name}</h4>
-                      <p className="text-xs text-on-surface-variant mt-0.5">{dest.country}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-on-surface truncate">{dest.name}</p>
+                      <p className="text-xs text-on-surface-variant">
+                        {dest.posts_count} post{dest.posts_count !== 1 ? 's' : ''}
+                      </p>
                     </div>
                   </div>
-                  <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
-                </li>
-              ))}
-            </ul>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Top Contributors */}
           <div className="bg-surface-pure rounded-xl border border-surface-muted p-5 shadow-sm">
-            <h3 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
+            <h3 className="text-base font-semibold text-on-surface mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-secondary text-[20px]">emoji_events</span>
               Top Contributors
             </h3>
-            <div className="space-y-4">
-              {topContributors.map((contrib) => (
-                <div key={contrib.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-accent-teal-light text-secondary border border-secondary/20 flex items-center justify-center font-bold text-xs">
-                      {contrib.initial}
+            {contributors.length === 0 ? (
+              <p className="text-sm text-on-surface-variant">No data yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {contributors.map((c, i) => {
+                  const initials = `${c.user?.first_name?.[0] || ''}${c.user?.last_name?.[0] || ''}`.toUpperCase();
+                  return (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden">
+                        {c.user?.avatar_url
+                          ? <img src={`http://localhost:5000${c.user.avatar_url}`} alt={initials} className="w-full h-full object-cover" />
+                          : initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-on-surface truncate">
+                          {c.user ? `${c.user.first_name} ${c.user.last_name}` : 'Unknown'}
+                        </p>
+                        <p className="text-xs text-on-surface-variant">
+                          {c.posts_count} post{c.posts_count !== 1 ? 's' : ''} · {c.likes_received} likes
+                        </p>
+                      </div>
+                      <span className="text-xs font-bold text-secondary">#{i + 1}</span>
                     </div>
-                    <span className="text-sm font-semibold text-on-surface">{contrib.name}</span>
-                  </div>
-                  <span className="text-[11px] text-primary-container bg-primary-fixed border border-primary-container/20 px-2 py-0.5 rounded-full font-bold">
-                    {contrib.points} pts
-                  </span>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>
